@@ -1,0 +1,90 @@
+# uiina
+
+This repository contains the python script `uiina.py`,
+modified from [this script](https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv) from
+[mpv\'s repository at Github](https://github.com/mpv-player/mpv).
+
+Last modified: \[2021-04-26 Mon\]
+
+<details>
+    <summary>Detailed explaination of the script</summary>
+
+>    Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction 
+>                      below, and removed irrelavent sections since the mechanism and behaviour
+>                      should be almost identical.  The only differences should be that IINA 
+>                      won't quit automatically after all files are played, and that mpv options 
+>                      needs to be passed differently, see: `iina --help`.
+>
+>    This script allows the use of a single instance of IINA when launching through
+>    the command line.  When starting playback with this script, it will try to reuse 
+>    an already running instance of IINA (but only if that was started with uiina). 
+>    Other IINA instances (not started by `uiina`) are ignored, and the script 
+>    doesn't know about them.
+>
+>    This only takes filenames as arguments. Custom options can't be used; the script
+>    interprets them as filenames. If IINA is already running, the files passed to
+>    `uiina` are appended to IINA's internal playlist. If a file does not exist or is
+>    otherwise not playable, IINA will skip the playlist entry when attempting to
+>    play it (from the GUI perspective, it's silently ignored).
+>
+>    If IINA isn't running yet, this script will start IINA and let it control the
+>    current terminal. It will not write output to stdout/stderr, because this
+>    will typically just fill ~/.xsession-errors with garbage.  (Edit: Not sure if the
+>    same reasoning applies in MacOS, but indeed NOTHING will be written to stdout/stderr.)
+>
+>    Note: you can supply custom IINA path and options with the IINA environment
+>          variable. The environment variable will be split on whitespace, and the
+>          first item is used as path to IINA binary and the rest is passed as options
+>          _if_ the script starts IINA. If IINA is not started by the script (i.e. IINA
+>          is already running), this will be ignored.
+
+</details>
+
+# Currently contains:
+
+## Python Scripts
+
+-   `uiina.py`
+
+------------------------------------------------------------------------
+
+## How to install
+
+### Using `brew` :: Recommended.
+
+Tap `ed9w2in6/wsl` and install it:
+
+``` shell-script
+brew tap ed9w2in6/wsl
+brew install uiina
+```
+
+### From release :: Not recommended.
+
+After downloading the `tgz` file,
+
+-   Extract it.
+-   Verify its checksum
+-   Move the `uiina` folder to your desired location.
+-   make a symbolic link of `uiina.py` in one of the
+    directories under `$PATH`, it **must be named**:
+    `uiina`
+
+------------------------------------------------------------------------
+
+# Other notes
+
+## Problem with `brew`
+
+Questions with `brew` will not be answered here. Go see
+[homebrew-wsl](https://github.com/ed9w2in6/homebrew-wsl) first.
+
+If it does not solve your problem, it is likely homebrew\'s problem.
+
+Always read [homebrew\'s FAQ](https://docs.brew.sh/FAQ), or [its
+discussions](https://github.com/Homebrew/discussions/discussions) to try
+to solve the problem yourself first. If there is an issue, go report it
+to [homebrew-core](https://github.com/Homebrew/homebrew-core/issues).
+
+Note that *homebrew* **may not respond** to problem that is caused by a
+custom tap.
