@@ -7,7 +7,7 @@ This repository contains the python script =uiina.py=, modified from [[https://g
   
 Last modified: [2021-04-26 Mon]
 
-#+BEGIN_EXPORT markdown
+#+BEGIN_EXPORT html
 <details>
     <summary>Detailed explaination of the script</summary>
     
