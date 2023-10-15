@@ -99,11 +99,11 @@ for opt, arg in opts:
 # make them absolute; also makes them safe against interpretation as options
 files = (
     []
-    if (len(args) == 0) and (args[0] == "-")
-    else (
+    if (len(args) == 1) and (args[0] == "-")
+    else [
         filename if is_url(filename) else Path(filename).expanduser().absolute()
         for filename in args
-    )
+    ]
 )
 
 SOCK_PATH = Path.home() / ".uiina_socket"
@@ -149,7 +149,7 @@ if sock is None:
 
     opts = (os.getenv("IINA") or "iina").split()
 
-    stdin_opt = "--stdin" if len(list(files)) == 0 else "--no-stdin"
+    stdin_opt = "--stdin" if len(files) == 0 else "--no-stdin"
     # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
     opts.extend(
         [
