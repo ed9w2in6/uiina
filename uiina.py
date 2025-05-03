@@ -2,6 +2,7 @@
 
 """
 Edit (welkinSL):  [2025-05-04] - fix unhappy path (Invalid Options.) never do print_quick_help
+                                 fix type signature mismatch warnings from pyright
 Edit (welkinSL):  [2023-10-14] - rewrite
 Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction 
                   below, and removed irrelavent sections since the mechanism and behaviour
@@ -162,7 +163,7 @@ if sock is None:
             "--",
         ]
     )  # <- Didn't change this one.
-    opts.extend(files)
+    opts.extend((f.as_posix() if isinstance(f, Path) else f) for f in files)
 
     subprocess.check_call(opts)
 else:
@@ -171,5 +172,7 @@ else:
         # escape: \ \n "
         fname = (
             f.as_posix().replace("\\", r"\\").replace('"', r"\"").replace("\n", r"\n")
+            if isinstance(f, Path)
+            else f
         )
         sock.send((f'raw loadfile "{fname}" append\n').encode("utf-8"))
