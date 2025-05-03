@@ -108,7 +108,9 @@ files = (
     ]
 )
 
-SOCK_PATH = Path.home() / ".uiina_socket"
+XDG_RUNTIME_DIR = os.getenv("XDG_RUNTIME_DIR")
+BASE_PATH = Path(XDG_RUNTIME_DIR) if XDG_RUNTIME_DIR is not None else Path.home()
+SOCK_PATH = BASE_PATH / ".uiina_socket"
 sock = None
 try:
     sock = socket.socket(socket.AF_UNIX)
