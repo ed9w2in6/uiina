@@ -4,16 +4,16 @@
 Edit (welkinSL):  [2025-05-04] - fix unhappy path (Invalid Options.) never do print_quick_help
                                  fix type signature mismatch warnings from pyright
 Edit (welkinSL):  [2023-10-14] - rewrite
-Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction 
+Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction
                   below, and removed irrelavent sections since the mechanism and behaviour
-                  should be almost identical.  The only differences should be that IINA 
-                  won't quit automatically after all files are played, and that mpv options 
+                  should be almost identical.  The only differences should be that IINA
+                  won't quit automatically after all files are played, and that mpv options
                   needs to be passed differently, see: `iina --help`.
 
 This script allows the use of a single instance of IINA when launching through
-the command line.  When starting playback with this script, it will try to reuse 
-an already running instance of IINA (but only if that was started with uiina). 
-Other IINA instances (not started by `uiina`) are ignored, and the script 
+the command line.  When starting playback with this script, it will try to reuse
+an already running instance of IINA (but only if that was started with uiina).
+Other IINA instances (not started by `uiina`) are ignored, and the script
 doesn't know about them.
 
 This only takes filenames as arguments. Custom options can't be used; the script
