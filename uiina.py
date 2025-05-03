@@ -41,6 +41,7 @@ import os
 import signal
 import socket
 import string
+import shlex
 import subprocess
 import sys
 import textwrap
@@ -151,7 +152,7 @@ if sock is None:
     atexit.register(remove_uiina_socket_artefacts)
     signal.signal(signal.SIGINT, sigint_handler)
 
-    opts = (os.getenv("IINA") or "iina").split()
+    opts = shlex.split(os.getenv("IINA") or "iina")
 
     stdin_opt = "--stdin" if len(files) == 0 else "--no-stdin"
     # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
