@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 """
+Edit (welkinSL):  [2025-05-04] - fix unhappy path (Invalid Options.) never do print_quick_help
 Edit (welkinSL):  [2023-10-14] - rewrite
 Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction 
                   below, and removed irrelavent sections since the mechanism and behaviour
@@ -93,8 +94,8 @@ for opt, arg in opts:
     elif opt in ["-v", "--verbose"]:
         IS_QUIET = False
     else:
-        assert False, "Invalid Options."
         print_quick_help()
+        raise ValueError("Invalid Options.")
 
 # make them absolute; also makes them safe against interpretation as options
 files = (
