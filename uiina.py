@@ -136,7 +136,7 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
         [
             # "--mpv-no-terminal",
             # "--mpv-force-window",
-            "--mpv-profile=builtin-pseudo-gui", # uiina: does IINA supports this option?
+            "--mpv-profile=builtin-pseudo-gui",  # uiina: does IINA supports this option?
             f"--mpv-input-ipc-server={socket_path.as_posix()}",
             stdin_opt,
             "--keep-running",  # Need this to allow artefacts cleaning. See `iina --help`.
@@ -144,7 +144,10 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
         ]
     )  # <- uiina: Didn't change this one.
     iina_command.extend((f.as_posix() if isinstance(f, Path) else f) for f in files)
-    subprocess.check_call(iina_command)
+    # subprocess.Popen(iina_command, start_new_session=True) # UPSTREAM
+    subprocess.check_call(
+        iina_command
+    )  # uuina: we DO want to wait for our clean up logic.
 
 
 def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
@@ -159,7 +162,7 @@ def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
                 if isinstance(f, Path)
                 else f  # else f is an URL
             )
-            sock.send((f'raw loadfile "{fname}" append\n').encode("utf-8"))
+            sock.send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
     except Exception:
         print("mpv is terminating or the connection was lost.", file=sys.stderr)
         sys.exit(1)
