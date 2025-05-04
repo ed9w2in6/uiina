@@ -147,15 +147,21 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
 
 
 def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
-    # Unhandled race condition: what if iina is terminating right now?
-    for f in files:
-        # escape: \ \n "
-        fname = (
-            f.as_posix().replace("\\", r"\\").replace('"', r"\"").replace("\n", r"\n")
-            if isinstance(f, Path)
-            else f  # else f is an URL
-        )
-        sock.send((f'raw loadfile "{fname}" append\n').encode("utf-8"))
+    try:
+        for f in files:
+            # escape: \ \n "
+            fname = (
+                f.as_posix()
+                .replace("\\", r"\\")
+                .replace('"', r"\"")
+                .replace("\n", r"\n")
+                if isinstance(f, Path)
+                else f  # else f is an URL
+            )
+            sock.send((f'raw loadfile "{fname}" append\n').encode("utf-8"))
+    except Exception:
+        print("mpv is terminating or the connection was lost.", file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
