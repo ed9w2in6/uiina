@@ -133,7 +133,7 @@ def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
         print("Socket file removed.\nExit now.")
 
 
-def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
+def start_iina(files: Iterable[Path | str], socket_path: Path) -> None:
     iina = "iina" if os.name != "nt" else "iina.exe"
     iina_command = shlex.split(os.getenv("IINA", default=iina))
     stdin_opt = "--stdin" if len(list(files)) == 0 else "--no-stdin"
@@ -156,7 +156,7 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
     )  # uuina: we DO want to wait for our clean up logic.
 
 
-def send_files_to_mpv(
+def send_files_to_iina(
     conn: socket.socket | BinaryIO, files: Iterable[Path | str]
 ) -> None:
     try:
@@ -173,7 +173,7 @@ def send_files_to_mpv(
             )
             send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
     except Exception:
-        print("mpv is terminating or the connection was lost.", file=sys.stderr)
+        print("iina is terminating or the connection was lost.", file=sys.stderr)
         sys.exit(1)
 
 
@@ -211,18 +211,18 @@ def main() -> None:
     try:
         if os.name == "nt":
             with open(socket_path, "r+b", buffering=0) as pipe:
-                send_files_to_mpv(pipe, files)
+                send_files_to_iina(pipe, files)
         else:
             with socket.socket(socket.AF_UNIX) as sock:
                 sock.connect(socket_path.as_posix())
                 if not IS_QUIET:
                     print(f"Using socket: {sock}")
-                send_files_to_mpv(sock, files)
+                send_files_to_iina(sock, files)
     except (
         FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
         ConnectionRefusedError,  # abandoned socket
     ):
-        # Let mpv recreate socket if it doesn't already exist.
+        # create socket if we do NOT have one
 
         # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
         # Note that adding them here means they are only added if we need to launch an IINA instance.
@@ -236,7 +236,7 @@ def main() -> None:
         atexit.register(remove_uiina_socket_artefacts)
 
         # actually launching an IINA instance
-        start_mpv(files, socket_path)
+        start_iina(files, socket_path)
 
 
 if __name__ == "__main__":
