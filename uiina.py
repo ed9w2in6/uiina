@@ -37,6 +37,7 @@ from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
 from types import FrameType
+from typing import BinaryIO
 
 import atexit
 import getopt
@@ -84,6 +85,8 @@ def is_url(filename):
 
 
 def get_socket_path() -> Path:
+    if os.name == "nt":
+        return r"\\.\pipe\uiina"
     HOME = os.getenv("HOME")
     # uiina: our fork defaults HOME to Path.home(), which expands from `~`
     if HOME is None:
@@ -108,7 +111,7 @@ def get_socket_path() -> Path:
             "Ensure that one of the following environment variables is set: "
             "UIINA_SOCKET_DIR, XDG_RUNTIME_DIR, HOME or TMPDIR."
         )
-    return base_path / ".uiina_socket"
+    return base_path / ".uiina"
 
 
 def print_signal_and_frame_then_exit_normally(
@@ -129,7 +132,8 @@ def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
 
 
 def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
-    iina_command = shlex.split(os.getenv("IINA", "iina"))
+    iina = "iina" if os.name != "nt" else "iina.exe"
+    iina_command = shlex.split(os.getenv("IINA", default=iina))
     stdin_opt = "--stdin" if len(list(files)) == 0 else "--no-stdin"
     # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
     iina_command.extend(
@@ -150,8 +154,11 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
     )  # uuina: we DO want to wait for our clean up logic.
 
 
-def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
+def send_files_to_mpv(
+    conn: socket.socket | BinaryIO, files: Iterable[Path | str]
+) -> None:
     try:
+        send = conn.send if isinstance(conn, socket.socket) else conn.write
         for f in files:
             # escape: \ \n "
             fname = (
@@ -162,7 +169,7 @@ def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
                 if isinstance(f, Path)
                 else f  # else f is an URL
             )
-            sock.send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
+            send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
     except Exception:
         print("mpv is terminating or the connection was lost.", file=sys.stderr)
         sys.exit(1)
@@ -200,11 +207,15 @@ def main() -> None:
     socket_path = get_socket_path()
 
     try:
-        with socket.socket(socket.AF_UNIX) as sock:
-            sock.connect(socket_path.as_posix())
-            if not IS_QUIET:
-                print(f"Using socket: {sock}")
-            send_files_to_mpv(sock, files)
+        if os.name == "nt":
+            with open(socket_path, "r+b", buffering=0) as pipe:
+                send_files_to_mpv(pipe, files)
+        else:
+            with socket.socket(socket.AF_UNIX) as sock:
+                sock.connect(socket_path.as_posix())
+                if not IS_QUIET:
+                    print(f"Using socket: {sock}")
+                send_files_to_mpv(sock, files)
     except (
         FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
         ConnectionRefusedError,  # abandoned socket
