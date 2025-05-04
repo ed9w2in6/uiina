@@ -1,12 +1,15 @@
-#+TITLE:uiina
+ #+TITLE:uiina
 #+AUTHOR: welkinSL
 #+DATE: [2025-05-04 Sun]
 * About
   This repository contains the python script =uiina.py=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
-  
+
   Last modified: [2025-05-04 Sun]
 
-  @@html:<details><summary>Detailed explaination of the script</summary>@@
+  #+begin_export html
+<details>
+<summary>Detailed explaination of the script</summary>
+  #+end_export
 ** Modifications
    All mentions of =mpv= have been replaced with =IINA=
    In addition, differences such as IINA not quitting automatically after all files are played
@@ -15,7 +18,7 @@
    This script ensures that only one instance of IINA is used.
    If invoked via the command line, it will attempt to append files to the playlist of an already running IINA instance
    but only if that instance was started with the =uiina= command.
-   
+
    Any other IINA processes remain unaffected.
 ** Accepted Arguments
    The script accepts only filenames as arguments.
@@ -36,7 +39,9 @@
    + any subsequent items are options applied only when the script initiates IINA
      - If IINA is already running, these settings are ignored.
 
-  @@html:</details>@@
+          #+begin_export html
+</details>
+  #+end_export
 * How to install
 ** Using =brew= :: Recommended
    Tap =ed9w2in6/wsl= and install it:
@@ -59,7 +64,7 @@ brew install uiina
 
    If it does not solve your problem, it is likely homebrew's problem.
 
-   Always read [[https://docs.brew.sh/FAQ][homebrew's FAQ]], or [[https://github.com/Homebrew/discussions/discussions][its discussions]] to try to solve the problem yourself first. 
+   Always read [[https://docs.brew.sh/FAQ][homebrew's FAQ]], or [[https://github.com/Homebrew/discussions/discussions][its discussions]] to try to solve the problem yourself first.
    If there is an issue, go report it to [[https://github.com/Homebrew/homebrew-core/issues][homebrew-core]].
 
    Note that /homebrew/ *may not respond* to problem that is caused by a custom tap.
