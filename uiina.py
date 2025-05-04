@@ -3,6 +3,8 @@
 """
 Edit (welkinSL):  [2025-05-04] - fix unhappy path (Invalid Options.) never do print_quick_help
                                  fix type signature mismatch warnings from pyright
+                                 merge all upstream changes up to:
+                                 https://github.com/mpv-player/mpv/commit/48f944d21b42b682bd12e522f5b24fd1a0e15058
 Edit (welkinSL):  [2023-10-14] - rewrite
 Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction
                   below, and removed irrelavent sections since the mechanism and behaviour
