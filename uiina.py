@@ -134,8 +134,9 @@ def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
     # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
     iina_command.extend(
         [
-            "--mpv-no-terminal",
-            "--mpv-force-window",
+            # "--mpv-no-terminal",
+            # "--mpv-force-window",
+            "--mpv-profile=builtin-pseudo-gui", # uiina: does IINA supports this option?
             f"--mpv-input-ipc-server={socket_path.as_posix()}",
             stdin_opt,
             "--keep-running",  # Need this to allow artefacts cleaning. See `iina --help`.
