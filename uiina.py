@@ -211,18 +211,22 @@ def main() -> None:
     try:
         if os.name == "nt":
             with open(socket_path, "r+b", buffering=0) as pipe:
+                if not IS_QUIET:
+                    print(f"Using existing pipe: {pipe}")
                 send_files_to_iina(pipe, files)
         else:
             with socket.socket(socket.AF_UNIX) as sock:
                 sock.connect(socket_path.as_posix())
                 if not IS_QUIET:
-                    print(f"Using socket: {sock}")
+                    print(f"Using existing socket: {sock}")
                 send_files_to_iina(sock, files)
     except (
         FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
         ConnectionRefusedError,  # abandoned socket
     ):
         # create socket if we do NOT have one
+        if not IS_QUIET:
+            print("Creating new uiina session.")
 
         # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
         # Note that adding them here means they are only added if we need to launch an IINA instance.
