@@ -33,19 +33,21 @@ Note: you can supply custom IINA path and options with the IINA environment
       _if_ the script starts IINA. If IINA is not started by the script (i.e. IINA
       is already running), this will be ignored.
 """
+from collections.abc import Iterable
+from functools import partial
+from pathlib import Path
+from types import FrameType
 
 import atexit
-import errno
 import getopt
 import os
+import shlex
 import signal
 import socket
 import string
-import shlex
 import subprocess
 import sys
 import textwrap
-from pathlib import Path
 
 
 def print_quick_help():
@@ -81,101 +83,138 @@ def is_url(filename):
     return all(map(lambda c: c in allowed_symbols, prefix))
 
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "verbose"])
-except getopt.GetoptError:
-    print("ERROR: Invalid options.")
-    print_quick_help()
-    sys.exit(2)
-
-IS_QUIET = True
-for opt, arg in opts:
-    if opt in ["-h", "--help"]:
-        print_help()
-        sys.exit(0)
-    elif opt in ["-v", "--verbose"]:
-        IS_QUIET = False
-    else:
-        print_quick_help()
-        raise ValueError("Invalid Options.")
-
-# make them absolute; also makes them safe against interpretation as options
-files = (
-    []
-    if (len(args) == 1) and (args[0] == "-")
-    else [
-        filename if is_url(filename) else Path(filename).expanduser().absolute()
-        for filename in args
-    ]
-)
-
-XDG_RUNTIME_DIR = os.getenv("XDG_RUNTIME_DIR")
-BASE_PATH = Path(XDG_RUNTIME_DIR) if XDG_RUNTIME_DIR is not None else Path.home()
-SOCK_PATH = BASE_PATH / ".uiina_socket"
-sock = None
-try:
-    sock = socket.socket(socket.AF_UNIX)
-    sock.connect(SOCK_PATH.as_posix())
-    if not IS_QUIET:
-        print(f"Using socket: {sock}")
-except socket.error as e:
-    if e.errno == errno.ECONNREFUSED:
-        sock = None
-        pass  # abandoned socket
-    elif e.errno == errno.ENOENT:
-        sock = None
-        pass  # doesn't exist
-    else:
-        raise e
+def get_socket_path() -> Path:
+    HOME = os.getenv("HOME")
+    # uiina: our fork defaults HOME to Path.home(), which expands from `~`
+    if HOME is None:
+        HOME = Path.home()
+    TMPDIR = os.getenv("TMPDIR")
+    UIINA_SOCKET_DIR = os.getenv("UIINA_SOCKET_DIR")
+    XDG_RUNTIME_DIR = os.getenv("XDG_RUNTIME_DIR")
+    base_path = None
+    for cand_dir in [
+        UIINA_SOCKET_DIR,
+        XDG_RUNTIME_DIR,
+        HOME,
+        TMPDIR,
+    ]:  # in this specific order
+        if cand_dir is None:
+            continue
+        base_path = Path(cand_dir)
+        break  # uiina: take the first match
+    if base_path is None:
+        raise Exception(
+            "Could not determine a base directory for the socket. "
+            "Ensure that one of the following environment variables is set: "
+            "UIINA_SOCKET_DIR, XDG_RUNTIME_DIR, HOME or TMPDIR."
+        )
+    return base_path / ".uiina_socket"
 
 
-def sigint_handler(signo, frame):
-    if not IS_QUIET:
+def print_signal_and_frame_then_exit_normally(
+    signo: int, frame: FrameType | None, is_quiet: bool = False
+):
+    if not is_quiet:
         print(f"\nReceived signal number { signo }, from frame { frame }.")
         print("Exiting normally.")
     sys.exit(0)
 
 
-def remove_uiina_socket_artefacts():
-    if not IS_QUIET:
-        print(f'Exiting uiina.\nRemoving file at "{SOCK_PATH}".')
-    SOCK_PATH.unlink()
-    if not IS_QUIET:
+def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
+    if not is_quiet:
+        print(f'Exiting uiina.\nRemoving file at "{socket_path}".')
+    socket_path.unlink()
+    if not is_quiet:
         print("Socket file removed.\nExit now.")
 
 
-if sock is None:
-    # Let mpv recreate socket if it doesn't already exist.
-
-    # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
-    # Note that adding them here means they are only added if we need to launch an IINA instance.
-    atexit.register(remove_uiina_socket_artefacts)
-    signal.signal(signal.SIGINT, sigint_handler)
-
-    opts = shlex.split(os.getenv("IINA") or "iina")
-
-    stdin_opt = "--stdin" if len(files) == 0 else "--no-stdin"
+def start_mpv(files: Iterable[Path | str], socket_path: Path) -> None:
+    iina_command = shlex.split(os.getenv("IINA", "iina"))
+    stdin_opt = "--stdin" if len(list(files)) == 0 else "--no-stdin"
     # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
-    opts.extend(
+    iina_command.extend(
         [
             "--mpv-no-terminal",
             "--mpv-force-window",
-            "--mpv-input-ipc-server=" + SOCK_PATH.as_posix(),
+            f"--mpv-input-ipc-server={socket_path.as_posix()}",
             stdin_opt,
             "--keep-running",  # Need this to allow artefacts cleaning. See `iina --help`.
             "--",
         ]
-    )  # <- Didn't change this one.
-    opts.extend((f.as_posix() if isinstance(f, Path) else f) for f in files)
+    )  # <- uiina: Didn't change this one.
+    iina_command.extend((f.as_posix() if isinstance(f, Path) else f) for f in files)
+    subprocess.check_call(iina_command)
 
-    subprocess.check_call(opts)
-else:
-    # Unhandled race condition: what if mpv is terminating right now?
+
+def send_files_to_mpv(sock: socket.socket, files: Iterable[Path | str]) -> None:
+    # Unhandled race condition: what if iina is terminating right now?
     for f in files:
         # escape: \ \n "
         fname = (
             f.as_posix().replace("\\", r"\\").replace('"', r"\"").replace("\n", r"\n")
             if isinstance(f, Path)
-            else f
+            else f  # else f is an URL
         )
         sock.send((f'raw loadfile "{fname}" append\n').encode("utf-8"))
+
+
+def main() -> None:
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "verbose"])
+    except getopt.GetoptError as err:
+        print_quick_help()
+        raise ValueError(f"Invalid options: {err}")
+
+    IS_QUIET = True
+    for opt, _ in opts:
+        match opt:
+            case "-h" | "--help":
+                print_help()
+                return
+                # sys.exit(0)
+            case "-v" | "--verbose":
+                IS_QUIET = False
+            case _:
+                print_quick_help()
+                raise ValueError(f"Invalid Options: {opt}, SHOULD NOT REACH HERE")
+
+    # make them absolute; also makes them safe against interpretation as options
+    files = (
+        []
+        if (len(args) == 1) and (args[0] == "-")
+        else [
+            filename if is_url(filename) else Path(filename).expanduser().absolute()
+            for filename in args
+        ]
+    )
+    socket_path = get_socket_path()
+
+    try:
+        with socket.socket(socket.AF_UNIX) as sock:
+            sock.connect(socket_path.as_posix())
+            if not IS_QUIET:
+                print(f"Using socket: {sock}")
+            send_files_to_mpv(sock, files)
+    except (
+        FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
+        ConnectionRefusedError,  # abandoned socket
+    ):
+        # Let mpv recreate socket if it doesn't already exist.
+
+        # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
+        # Note that adding them here means they are only added if we need to launch an IINA instance.
+        sigint_handler = partial(
+            print_signal_and_frame_then_exit_normally, is_quiet=IS_QUIET
+        )
+        signal.signal(signal.SIGINT, sigint_handler)
+        remove_uiina_socket_artefacts = partial(
+            remove_uiina_socket_artefacts_at, socket_path=socket_path, is_quiet=IS_QUIET
+        )
+        atexit.register(remove_uiina_socket_artefacts)
+
+        # actually launching an IINA instance
+        start_mpv(files, socket_path)
+
+
+if __name__ == "__main__":
+    main()
