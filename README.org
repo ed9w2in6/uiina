@@ -2,6 +2,7 @@
 #+AUTHOR: welkinSL
 #+DATE: [2025-05-04 Sun]
 * About
+** Origins
   This repository contains the python script =uiina.py=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
 
   Last modified: [2025-05-04 Sun]
@@ -10,38 +11,72 @@
 <details>
 <summary>Detailed explaination of the script</summary>
   #+end_export
-** Modifications
-   All mentions of =mpv= have been replaced with =IINA=
-   In addition, differences such as IINA not quitting automatically after all files are played
-   and the distinct method for passing options (consult =iina --help=) are noted.
-** Single Instance Management
-   This script ensures that only one instance of IINA is used.
-   If invoked via the command line, it will attempt to append files to the playlist of an already running IINA instance
-   but only if that instance was started with the =uiina= command.
+** Differences with =umpv=
+*** functions, variables, and CLI options renaming
+    All mentions of =mpv= have been replaced with =iina= where applicable.
 
-   Any other IINA processes remain unaffected.
-** Accepted Arguments
-   The script accepts only filenames as arguments.
-   No custom options are permitted
+    It should be noted that IINA will NOT quite automatically after all files are played.
+    The way =mpv= options are via =iina= is also different:
 
-   Any additional arguments are interpreted solely as filenames.
-** Playback Behavior
-  When IINA is already running, the provided files are added to its internal playlist.
+           #+begin_src sh :results output scalar :eval yes
+iina --help | head -n 10
+    #+end_src
 
-  If an argument does not correspond to an existing or playable file, IINA will simply bypass that entry without issue.
-** Startup Characteristics
-   If no appropriate instance of IINA is running, the script will launch IINA and assign control of the current terminal to it.
-   To avoid cluttering logs (notably =~/.xsession-errors= or, on macOS, =stdout/stderr=), it deliberately suppresses output.
-** Custom Configuration
-   You may define a custom IINA binary path and options using the IINA environment variable.
-   This variable is split on whitespace:
-   + the first element specifies the IINA binary’s path
-   + any subsequent items are options applied only when the script initiates IINA
-     - If IINA is already running, these settings are ignored.
+#+RESULTS:
+#+begin_example
+Usage: iina-cli [arguments] [files] [-- mpv_option [...]]
 
-          #+begin_export html
-</details>
-  #+end_export
+Arguments:
+--mpv-*:
+        All mpv options are supported here, except those starting with "--no-".
+        Example: --mpv-volume=20 --mpv-resume-playback=no
+--separate-windows | -w:
+        Open all files in separate windows.
+--stdin, --no-stdin:
+        You may also pipe to stdin directly. Sometimes iina-cli can detect whether
+#+end_example
+
+*** keep-alive when new socket for auto cleanup on quit
+    Since [[https://github.com/mpv-player/mpv/commit/dfbd60f9bb847abc564db477c32df124324959ad][commit dfbd60f]] =umpv= had changed to NOT wait for quit even for
+    new socket / pipe.
+
+    However, due to =uiina='s auto cleanup feature we DO need it to keep alive
+    and clean up on quit.
+*** read from stdin and using URL
+    unlike =mpv= we allow reading from stdin.
+    We also accepts URLs too due to IINA's builtin =yt-dlp=.
+*** socket directory
+    You can configure the socket directory with a environment variable.
+
+    These are accepted, in order of precedence:
+    + =UIINA_SOCKET_DIR=
+    + =XDG_RUNTIME_DIR=
+    + =HOME=
+      - in =uiina= we take this from =Path.home()=, unlike =umpv= which relies on env var.
+    + =TMPDIR=
+** Shared features
+*** Single instance
+    This script ensures that only one instance of IINA is used.
+
+    If invoked via the command line, it will attempt to append files to the playlist of an already running IINA instance
+    but only if that instance was started with the =uiina= command, which can be detected by socket / pipe existence.
+    Any other IINA processes remain unaffected.
+
+    If an target argument is invalid, IINA will quit with a non-zero exit code.
+
+    If no good IINA running, that is no socket / pipe file, they will be created and a fresh IINA instance will be launch.
+    To avoid cluttering logs (notably =~/.xsession-errors= or, on macOS, =stdout/stderr=), it deliberately suppresses output.
+*** Custom Configuration
+    You may define a custom IINA (originally =MPV= for =umpv=) binary path and options using some appropriate environment variable.
+
+    This variable is split on whitespace:
+    + the first element specifies the IINA binary’s path
+    + any subsequent items are options applied only when the script initiates IINA
+      - If IINA is already running, these settings are ignored
+
+           #+begin_export html
+ </details>
+   #+end_export
 * How to install
 ** Using =brew= :: Recommended
    Tap =ed9w2in6/wsl= and install it:
@@ -68,7 +103,12 @@ brew install uiina
    If there is an issue, go report it to [[https://github.com/Homebrew/homebrew-core/issues][homebrew-core]].
 
    Note that /homebrew/ *may not respond* to problem that is caused by a custom tap.
-** Upstream Changes
+** DONE Upstream Changes
+   :LOGBOOK:
+   - State "DONE"       from              [2025-05-04 Sun 18:47]
+   :END:
+   Merged at [2025-05-04 Sun]
+
    There seems to be updates upstream:
    https://github.com/mpv-player/mpv/commits/master/TOOLS/umpv
 
