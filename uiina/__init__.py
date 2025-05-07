@@ -45,8 +45,9 @@ Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the ins
                   needs to be passed differently, see: `iina --help`.
 """
 
-from .uiina import *
 from importlib.metadata import version
+
+from .uiina import *
 
 __version__ = version("uiina")
 

@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-from collections.abc import Iterable
-from functools import partial
-from pathlib import Path
-from types import FrameType
-from typing import BinaryIO
-
 import atexit
 import getopt
 import os
@@ -15,6 +9,11 @@ import string
 import subprocess
 import sys
 import textwrap
+from collections.abc import Iterable
+from functools import partial
+from pathlib import Path
+from types import FrameType
+from typing import BinaryIO
 
 
 def print_quick_help() -> None:
@@ -54,11 +53,12 @@ def is_url(arg: str):
 
 def get_socket_path() -> Path:
     if os.name == "nt":
-        return r"\\.\pipe\uiina"
-    HOME = os.getenv("HOME")
-    # uiina: our fork defaults HOME to Path.home(), which expands from `~`
-    if HOME is None:
-        HOME = Path.home()
+        return Path(
+            r"\\.\pipe\uiina"
+        )  # pyright: ignore[reportUnreachable] # unreachable on non-Windows only
+    HOME = os.getenv(
+        "HOME"
+    )  # pyright: ignore[reportUnreachable] # unreachable on Windows only
     TMPDIR = os.getenv("TMPDIR")
     UIINA_SOCKET_DIR = os.getenv("UIINA_SOCKET_DIR")
     XDG_RUNTIME_DIR = os.getenv("XDG_RUNTIME_DIR")
@@ -66,7 +66,9 @@ def get_socket_path() -> Path:
     for cand_dir in [
         UIINA_SOCKET_DIR,
         XDG_RUNTIME_DIR,
-        HOME,
+        (
+            Path.home() if HOME is None else HOME
+        ),  # uiina: our fork defaults HOME to Path.home(), which expands from `~`
         TMPDIR,
     ]:  # uiina: in this specific order, same as umpv
         if cand_dir is None:
@@ -75,9 +77,11 @@ def get_socket_path() -> Path:
         break  # uiina: take the first match
     if base_path is None:
         raise Exception(
-            "Could not determine a base directory for the socket. "
-            "Ensure that one of the following environment variables is set: "
-            "UIINA_SOCKET_DIR, XDG_RUNTIME_DIR, HOME or TMPDIR."
+            """
+            Could not determine a base directory for the socket.
+            Ensure that one of the following environment variables is set:
+            UIINA_SOCKET_DIR, XDG_RUNTIME_DIR, HOME or TMPDIR.
+        """
         )
     return base_path / ".uiina"
 
@@ -119,7 +123,7 @@ def create_new_iina_with(targets: Iterable[Path | str], socket_path: Path) -> No
         (str(target) if isinstance(target, Path) else target) for target in targets
     )
     # subprocess.Popen(iina_command, start_new_session=True) # uiina: UPSTREAM umpv uses this
-    subprocess.check_call(
+    _ = subprocess.check_call(
         iina_command
     )  # uuina: we DO want to wait for our clean up logic.
 
@@ -139,7 +143,7 @@ def send_targets_to_iina(
                 if isinstance(target, Path)
                 else target  # else target is an URL
             )
-            send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
+            _ = send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
     except Exception:
         print("iina is terminating or the connection was lost.", file=sys.stderr)
         sys.exit(1)
@@ -152,14 +156,14 @@ def main() -> None:
         print_quick_help()
         raise ValueError(f"Invalid options: {err}")
 
-    IS_QUIET = True
+    is_quiet_option = True
     for opt, _ in opts:
         match opt:
             case "-h" | "--help":
                 print_help()
                 return
             case "-v" | "--verbose":
-                IS_QUIET = False
+                is_quiet_option = False
             case _:
                 print_quick_help()
                 raise ValueError(f"Invalid Options: {opt}, SHOULD NOT REACH HERE")
@@ -174,16 +178,20 @@ def main() -> None:
 
     try:
         if os.name == "nt":
-            with open(socket_path, "r+b", buffering=0) as pipe:
-                if not IS_QUIET:
+            with open(
+                socket_path, "r+b", buffering=0
+            ) as pipe:  # pyright: ignore[reportUnreachable] # unreachable on non-Windows only
+                if not is_quiet_option:
                     print(f"Using existing pipe: {pipe}")
                 send_targets_to_iina(pipe, targets)
         else:
-            with socket.socket(socket.AF_UNIX) as sock:
+            with socket.socket(
+                socket.AF_UNIX
+            ) as sock:  # pyright: ignore[reportUnreachable] # unreachable on Windows only
                 sock.connect(
                     str(socket_path)
                 )  # we rely on exception for new session creation.
-                if not IS_QUIET:
+                if not is_quiet_option:
                     print(f"Using existing socket: {sock}")
                 send_targets_to_iina(sock, targets)
     except (
@@ -191,19 +199,21 @@ def main() -> None:
         ConnectionRefusedError,  # abandoned socket
     ):
         # create socket if we do NOT have one
-        if not IS_QUIET:
+        if not is_quiet_option:
             print("Creating new uiina session.")
 
         # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
         # Note that adding them here means they are only added if we need to launch an IINA instance.
         sigint_handler = partial(
-            __print_signal_and_frame_then_exit_normally, is_quiet=IS_QUIET
+            __print_signal_and_frame_then_exit_normally, is_quiet=is_quiet_option
         )
-        signal.signal(signal.SIGINT, sigint_handler)
+        _ = signal.signal(signal.SIGINT, sigint_handler)
         remove_uiina_socket_artefacts = partial(
-            __remove_socket_artefacts_at, socket_path=socket_path, is_quiet=IS_QUIET
+            __remove_socket_artefacts_at,
+            socket_path=socket_path,
+            is_quiet=is_quiet_option,
         )
-        atexit.register(remove_uiina_socket_artefacts)
+        _ = atexit.register(remove_uiina_socket_artefacts)
 
         # actually launching an IINA instance
         create_new_iina_with(targets, socket_path)
