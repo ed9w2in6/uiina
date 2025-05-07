@@ -20,13 +20,13 @@ uiina = "uiina.uiina:main"
 
 [dependency-groups]
 dev = [
-  {include-group = "test"},
   {include-group = "checks"},
+  {include-group = "test"},
 ]
 checks = [
     "black>=25.1.0",
+    "isort>=6.0.1",
     "pyright>=1.1.397",
-    "pre-commit>=4.2.0",
 ]
 test = [
     "pytest>=8.3.3",
@@ -65,3 +65,7 @@ pythonVersion = "3.13"
 pythonPlatform = "Darwin"
 
 # executionEnvironments = []
+
+[tool.isort]
+filter_files = true
+profile = "black"
