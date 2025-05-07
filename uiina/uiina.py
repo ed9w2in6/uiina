@@ -18,30 +18,32 @@ import textwrap
 
 
 def print_quick_help() -> None:
-    print("Usage: uiina [-vh] [file ...]")
+    print("Usage: uiina [-vh] [target ...]")
 
 
 def print_help() -> None:
     print(
         textwrap.dedent(
             """\
-        Usage: uiina [option] [file ...]
+        Usage: uiina [option] [target ...]
 
-            option:
-                -h(elp)           Show this help.
-                -v(erbose)        Be verbose.
+            options:
+                -h | --help           Show this help.
+                -v | --verbose        Be verbose.
 
-            file ...:
-               The file(s) to be opened by uiina.
+            target ...:
+               The target(s) to be opened by uiina.
+               They can be paths, or URLs.
+               To read from stdin, give a single parameter "-" and nothing else.
 
             Inspect the python script for a more detailed explaination."""
         )
     )
 
 
-# this is the same method mpv uses to decide this
-def is_url(filename):
-    parts = filename.split("://", 1)
+def is_url(arg: str):
+    "Returns True if ARG is an URL following mpv's logic, else False."
+    parts = arg.split("://", 1)
     if len(parts) < 2:
         return False
     # protocol prefix has no special characters => it's an URL
@@ -66,7 +68,7 @@ def get_socket_path() -> Path:
         XDG_RUNTIME_DIR,
         HOME,
         TMPDIR,
-    ]:  # in this specific order
+    ]:  # uiina: in this specific order, same as umpv
         if cand_dir is None:
             continue
         base_path = Path(cand_dir)
@@ -80,16 +82,18 @@ def get_socket_path() -> Path:
     return base_path / ".uiina"
 
 
-def print_signal_and_frame_then_exit_normally(
+def __print_signal_and_frame_then_exit_normally(
     signo: int, frame: FrameType | None, is_quiet: bool = False
 ):
+    "Handler for signal.signal, private API, do not use this externally."
     if not is_quiet:
         print(f"\nReceived signal number { signo }, from frame { frame }.")
         print("Exiting normally.")
     sys.exit(0)
 
 
-def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
+def __remove_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
+    "Handler for atexit.register, private API, do not use this externally."
     if not is_quiet:
         print(f'Exiting uiina.\nRemoving file at "{socket_path}".')
     socket_path.unlink()
@@ -97,43 +101,43 @@ def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
         print("Socket file removed.\nExit now.")
 
 
-def start_iina(files: Iterable[Path | str], socket_path: Path) -> None:
+def create_new_iina_with(targets: Iterable[Path | str], socket_path: Path) -> None:
     iina = "iina" if os.name != "nt" else "iina.exe"
     iina_command = shlex.split(os.getenv("IINA", default=iina))
-    stdin_opt = "--stdin" if len(list(files)) == 0 else "--no-stdin"
-    # append replaced `--` with `--mpv-` as per instructions of iina-cli.  See: `iina --help`.
+    stdin_opt = "--stdin" if len(list(targets)) == 0 else "--no-stdin"
+    # append replaced `--` with `--mpv-` as per instructions of IINA.  See: `iina --help`.
     iina_command.extend(
         [
-            # "--mpv-no-terminal",
-            # "--mpv-force-window",
-            "--mpv-profile=builtin-pseudo-gui",  # uiina: does IINA supports this option?
-            f"--mpv-input-ipc-server={socket_path.as_posix()}",
+            "--mpv-profile=builtin-pseudo-gui",  # ref: https://github.com/mpv-player/mpv/blob/master/etc/builtin.conf
+            f"--mpv-input-ipc-server={socket_path}",
             stdin_opt,
             "--keep-running",  # Need this to allow artefacts cleaning. See `iina --help`.
             "--",
         ]
     )  # <- uiina: Didn't change this one.
-    iina_command.extend((f.as_posix() if isinstance(f, Path) else f) for f in files)
-    # subprocess.Popen(iina_command, start_new_session=True) # UPSTREAM
+    iina_command.extend(
+        (str(target) if isinstance(target, Path) else target) for target in targets
+    )
+    # subprocess.Popen(iina_command, start_new_session=True) # uiina: UPSTREAM umpv uses this
     subprocess.check_call(
         iina_command
     )  # uuina: we DO want to wait for our clean up logic.
 
 
-def send_files_to_iina(
-    conn: socket.socket | BinaryIO, files: Iterable[Path | str]
+def send_targets_to_iina(
+    conn: socket.socket | BinaryIO, targets: Iterable[Path | str]
 ) -> None:
     try:
         send = conn.send if isinstance(conn, socket.socket) else conn.write
-        for f in files:
+        for target in targets:
             # escape: \ \n "
             fname = (
-                f.as_posix()
+                str(target)
                 .replace("\\", r"\\")
                 .replace('"', r"\"")
                 .replace("\n", r"\n")
-                if isinstance(f, Path)
-                else f  # else f is an URL
+                if isinstance(target, Path)
+                else target  # else target is an URL
             )
             send((f'raw loadfile "{fname}" append-play\n').encode("utf-8"))
     except Exception:
@@ -161,13 +165,10 @@ def main() -> None:
                 raise ValueError(f"Invalid Options: {opt}, SHOULD NOT REACH HERE")
 
     # make them absolute; also makes them safe against interpretation as options
-    files = (
+    targets = (
         []
         if (len(args) == 1) and (args[0] == "-")
-        else [
-            filename if is_url(filename) else Path(filename).expanduser().absolute()
-            for filename in args
-        ]
+        else [arg if is_url(arg) else Path(arg).expanduser().absolute() for arg in args]
     )
     socket_path = get_socket_path()
 
@@ -176,15 +177,15 @@ def main() -> None:
             with open(socket_path, "r+b", buffering=0) as pipe:
                 if not IS_QUIET:
                     print(f"Using existing pipe: {pipe}")
-                send_files_to_iina(pipe, files)
+                send_targets_to_iina(pipe, targets)
         else:
             with socket.socket(socket.AF_UNIX) as sock:
                 sock.connect(
-                    socket_path.as_posix()
+                    str(socket_path)
                 )  # we rely on exception for new session creation.
                 if not IS_QUIET:
                     print(f"Using existing socket: {sock}")
-                send_files_to_iina(sock, files)
+                send_targets_to_iina(sock, targets)
     except (
         FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
         ConnectionRefusedError,  # abandoned socket
@@ -196,16 +197,16 @@ def main() -> None:
         # Add handlers to clean artefacts ( the file at `SOCK_PATH` ) on exit and interrupted.
         # Note that adding them here means they are only added if we need to launch an IINA instance.
         sigint_handler = partial(
-            print_signal_and_frame_then_exit_normally, is_quiet=IS_QUIET
+            __print_signal_and_frame_then_exit_normally, is_quiet=IS_QUIET
         )
         signal.signal(signal.SIGINT, sigint_handler)
         remove_uiina_socket_artefacts = partial(
-            remove_uiina_socket_artefacts_at, socket_path=socket_path, is_quiet=IS_QUIET
+            __remove_socket_artefacts_at, socket_path=socket_path, is_quiet=IS_QUIET
         )
         atexit.register(remove_uiina_socket_artefacts)
 
         # actually launching an IINA instance
-        start_iina(files, socket_path)
+        create_new_iina_with(targets, socket_path)
 
 
 if __name__ == "__main__":
