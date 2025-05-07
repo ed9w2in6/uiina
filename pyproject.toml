@@ -1,6 +1,6 @@
 [project]
 name = "uiina"
-version = "0.1.2"
+version = "1.2"
 description = "Using single-instance of IINA when launching through the command line"
 readme = {file="README.org", content-type="text/plain"} # should be text/x-org but built tool only allow from {text/markdown, text/x-rst, text/plain}
 requires-python = ">=3.13"

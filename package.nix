@@ -15,7 +15,7 @@ in stdenvNoCC.mkDerivation {
   # src = fetchFromGitHub {
   #   owner = "ed9w2in6";
   #   repo = "uiina";
-  #   rev = version;
+  #   rev = "v{version}";
   #   hash = "sha256-zBfh7uI840wDVYhABtaj3R0jHBevMDCMDpDnWURpXYg=";
   #   name = "${name}-${version}-source";
   # };
