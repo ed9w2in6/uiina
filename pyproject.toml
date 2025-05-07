@@ -5,15 +5,25 @@ description = "Using single-instance of IINA when launching through the command 
 readme = {file="README.org", content-type="text/plain"} # should be text/x-org but built tool only allow from {text/markdown, text/x-rst, text/plain}
 requires-python = ">=3.13"
 dependencies = []
-license = {file = "COPYING"}
-authors = [{name = "ed9w2in6"}]
-urls = {Homepage = "https://github.com/ed9w2in6/uiina"}
+license-files = ["COPYING"]
+authors = [{name = "ed9w2in6", email = "22890124+ed9w2in6@users.noreply.github.com"}]
+
+[project.urls]
+Homepage = "https://github.com/ed9w2in6/uiina"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/ed9w2in6/uiina.git"
+Issues = "https://github.com/ed9w2in6/uiina/issues"
+# Changelog = "https://github.com/ed9w2in6/uiina"
 
 [project.scripts]
 uiina = "uiina.uiina:main"
 
 [dependency-groups]
 dev = [
+  {include-group = "test"},
+  {include-group = "checks"},
+]
+checks = [
     "black>=25.1.0",
     "pyright>=1.1.397",
     "pre-commit>=4.2.0",
@@ -43,7 +53,9 @@ exclude = [
 ignore = [
     "*.bak",
 ]
-# defineConstant = { DEBUG = true }
+# defineConstant = {
+#     DEBUG = true
+# }
 # stubPath = "src/stubs"
 
 reportMissingImports = "error"
