@@ -1,40 +1,4 @@
 #!/usr/bin/env python3
-
-"""
-Edit (welkinSL):  [2025-05-04] - fix unhappy path (Invalid Options.) never do print_quick_help
-                                 fix type signature mismatch warnings from pyright
-                                 merge all upstream changes up to:
-                                 https://github.com/mpv-player/mpv/commit/48f944d21b42b682bd12e522f5b24fd1a0e15058
-Edit (welkinSL):  [2023-10-14] - rewrite
-Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the instruction
-                  below, and removed irrelavent sections since the mechanism and behaviour
-                  should be almost identical.  The only differences should be that IINA
-                  won't quit automatically after all files are played, and that mpv options
-                  needs to be passed differently, see: `iina --help`.
-
-This script allows the use of a single instance of IINA when launching through
-the command line.  When starting playback with this script, it will try to reuse
-an already running instance of IINA (but only if that was started with uiina).
-Other IINA instances (not started by `uiina`) are ignored, and the script
-doesn't know about them.
-
-This only takes filenames as arguments. Custom options can't be used; the script
-interprets them as filenames. If IINA is already running, the files passed to
-`uiina` are appended to IINA's internal playlist. If a file does not exist or is
-otherwise not playable, IINA will skip the playlist entry when attempting to
-play it (from the GUI perspective, it's silently ignored).
-
-If IINA isn't running yet, this script will start IINA and let it control the
-current terminal. It will not write output to stdout/stderr, because this
-will typically just fill ~/.xsession-errors with garbage.  (Edit: Not sure if the
-same reasoning applies in MacOS, but indeed NOTHING will be written to stdout/stderr.)
-
-Note: you can supply custom IINA path and options with the IINA environment
-      variable. The environment variable will be split on whitespace, and the
-      first item is used as path to IINA binary and the rest is passed as options
-      _if_ the script starts IINA. If IINA is not started by the script (i.e. IINA
-      is already running), this will be ignored.
-"""
 from collections.abc import Iterable
 from functools import partial
 from pathlib import Path
@@ -123,7 +87,6 @@ def print_signal_and_frame_then_exit_normally(
         print(f"\nReceived signal number { signo }, from frame { frame }.")
         print("Exiting normally.")
     sys.exit(0)
-    
 
 
 def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
@@ -216,7 +179,9 @@ def main() -> None:
                 send_files_to_iina(pipe, files)
         else:
             with socket.socket(socket.AF_UNIX) as sock:
-                sock.connect(socket_path.as_posix()) # we rely on exception for new session creation.
+                sock.connect(
+                    socket_path.as_posix()
+                )  # we rely on exception for new session creation.
                 if not IS_QUIET:
                     print(f"Using existing socket: {sock}")
                 send_files_to_iina(sock, files)
