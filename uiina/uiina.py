@@ -53,11 +53,11 @@ import sys
 import textwrap
 
 
-def print_quick_help():
+def print_quick_help() -> None:
     print("Usage: uiina [-vh] [file ...]")
 
 
-def print_help():
+def print_help() -> None:
     print(
         textwrap.dedent(
             """\
@@ -123,6 +123,7 @@ def print_signal_and_frame_then_exit_normally(
         print(f"\nReceived signal number { signo }, from frame { frame }.")
         print("Exiting normally.")
     sys.exit(0)
+    
 
 
 def remove_uiina_socket_artefacts_at(socket_path: Path, is_quiet: bool = False):
@@ -190,7 +191,6 @@ def main() -> None:
             case "-h" | "--help":
                 print_help()
                 return
-                # sys.exit(0)
             case "-v" | "--verbose":
                 IS_QUIET = False
             case _:
@@ -216,7 +216,7 @@ def main() -> None:
                 send_files_to_iina(pipe, files)
         else:
             with socket.socket(socket.AF_UNIX) as sock:
-                sock.connect(socket_path.as_posix())
+                sock.connect(socket_path.as_posix()) # we rely on exception for new session creation.
                 if not IS_QUIET:
                     print(f"Using existing socket: {sock}")
                 send_files_to_iina(sock, files)

@@ -1,0 +1,55 @@
+[project]
+name = "uiina"
+version = "0.1.2"
+description = "Using single-instance of IINA when launching through the command line"
+readme = {file="README.org", content-type="text/plain"} # should be text/x-org but built tool only allow from {text/markdown, text/x-rst, text/plain}
+requires-python = ">=3.13"
+dependencies = []
+license = {file = "COPYING"}
+authors = [{name = "ed9w2in6"}]
+urls = {Homepage = "https://github.com/ed9w2in6/uiina"}
+
+[project.scripts]
+uiina = "uiina.uiina:main"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pyright>=1.1.397",
+    "pre-commit>=4.2.0",
+]
+test = [
+    "pytest>=8.3.3",
+]
+
+[build-system]
+requires = [
+  "hatchling>=1.27.0",
+]
+build-backend = "hatchling.build"
+
+[tool.uv.pip]
+generate-hashes = true
+
+# For mono-repo projects
+# [tool.uv.workspace]
+# members = ["packages/*"]
+
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+]
+ignore = [
+    "*.bak",
+]
+# defineConstant = { DEBUG = true }
+# stubPath = "src/stubs"
+
+reportMissingImports = "error"
+# reportMissingTypeStubs = false
+
+pythonVersion = "3.13"
+pythonPlatform = "Darwin"
+
+# executionEnvironments = []

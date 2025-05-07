@@ -78,13 +78,14 @@ Arguments:
  </details>
    #+end_export
 * How to install
-** Using =brew= :: Recommended
+** Using =nix=
+** COMMENT Using =brew=
    Tap =ed9w2in6/wsl= and install it:
    #+BEGIN_src sh
 brew tap ed9w2in6/wsl
 brew install uiina
    #+END_src
-** From release :: Not recommended
+** From release
    After downloading the =tgz= file,
 
    + Extract it.
@@ -93,7 +94,7 @@ brew install uiina
    + make a symbolic link of =uiina.py= in one of the directories
      under =$PATH=, it *must be named*: =uiina=
 * Other notes
-** Problem with =brew=
+** COMMENT Problem with =brew=
    Questions with =brew= will not be answered here. Go see
    [[https://github.com/ed9w2in6/homebrew-wsl][homebrew-wsl]] first.
 
@@ -103,13 +104,9 @@ brew install uiina
    If there is an issue, go report it to [[https://github.com/Homebrew/homebrew-core/issues][homebrew-core]].
 
    Note that /homebrew/ *may not respond* to problem that is caused by a custom tap.
-** DONE Upstream Changes
-   :LOGBOOK:
-   - State "DONE"       from              [2025-05-04 Sun 18:47]
-   :END:
-   Merged at [2025-05-04 Sun]
+** Licensing follows =mpv=
+   As this software is a derivative work of =mpv=, it is licensed with the same terms.
 
-   There seems to be updates upstream:
-   https://github.com/mpv-player/mpv/commits/master/TOOLS/umpv
-
-   I need to merge upstream changes (if applicable) since [2022-11-29 Tue]
+   If there are any difference in the licensing terms, consider that a result of error.
+   Please contact for any licensing error and refer to the [[https://github.com/mpv-player/mpv][mpv-player repository]] as the
+   authorative source.
