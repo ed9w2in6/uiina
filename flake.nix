@@ -34,6 +34,7 @@
     }:
     let
       inherit (nixpkgs) lib;
+      inherit (pkgs.callPackages pyproject-nix.build.util { }) mkApplication;
 
       # Load a uv workspace from a workspace root.
       # Uv2nix treats all uv projects as workspace projects.
@@ -86,15 +87,27 @@
     {
       # Package a virtual environment as our main application.
       #
-      # Enable no optional dependencies for production build.
-      packages.x86_64-darwin.default = pythonSet.mkVirtualEnv "uiina-env" workspace.deps.default;
+      # mkApplication only links package content present in pythonSet.uiina
+      #
+      # This means that files such as:
+      # - Python interpreters
+      # - Activation scripts
+      # - pyvenv.cfg
+      #
+      # Are excluded but things like binaries, man pages, systemd units etc are included.
+      packages.x86_64-darwin.default = mkApplication {
+        # Enable no optional dependencies for production build.
+        # alternative is set this venv as default directly
+        venv = pythonSet.mkVirtualEnv "uiina-app-env" workspace.deps.default;
+        package = pythonSet.uiina;
+      };
 
       # Make uiina runnable with `nix run`
       apps.x86_64-darwin = {
         default = {
           type = "app";
           program = "${self.packages.x86_64-darwin.default}/bin/uiina";
-          meta.desciption = "Run uiina, CLI tool that helps using a single-instance of IINA, based on umpv.";
+          description = "Run uiina, CLI tool that helps using a single-instance of IINA, based on umpv.";
         };
       };
 
@@ -104,8 +117,7 @@
         # This means changes to your local files do NOT trigger a rebuild.
         #
         # WARNING: this feature is unstable
-        default = self.devShells.x86_64-darwin.uv2nix;
-        uv2nix =
+        default =
           let
             # Create an overlay enabling editable mode for all local dependencies.
             editableOverlay = workspace.mkEditablePyprojectOverlay {
@@ -161,6 +173,7 @@
             };
           in
           pkgs.mkShell {
+            name = "uiina-dev-env";
             packages = [
               virtualenv
               pkgs.uv
@@ -169,10 +182,8 @@
             env = {
               # Don't create venv using uv
               UV_NO_SYNC = "1";
-
               # Force uv to use Python interpreter from venv
               UV_PYTHON = "${virtualenv}/bin/python";
-
               # Prevent uv from downloading managed Python's
               UV_PYTHON_DOWNLOADS = "never";
             };
