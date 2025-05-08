@@ -1,37 +1,52 @@
 {
-  python313,
-  # fetchFromGitHub,
+  python,
   gitUpdater,
   lib,
-  stdenvNoCC,
-}: let
+  stdenv,
+}:
+let
   version = "1.2";
   name = "uiina";
-in stdenvNoCC.mkDerivation {
+in
+stdenv.mkDerivation {
   pname = name;
   inherit version;
 
   src = ./.;
-  # src = fetchFromGitHub {
-  #   owner = "ed9w2in6";
-  #   repo = "uiina";
-  #   rev = "v{version}";
-  #   hash = "sha256-zBfh7uI840wDVYhABtaj3R0jHBevMDCMDpDnWURpXYg=";
-  #   name = "${name}-${version}-source";
-  # };
 
-  buildInputs = [ python313 ];
+  nativeBuildInputs = [
+    (python.withPackages (
+      pypkgs: with pypkgs; [
+        shiv
+      ]
+    ))
+  ];
+  buildPhase = ''
+    runHook preBuild
+
+    shiv --reproducible \
+         --compressed \
+         --compile-pyc \
+         --output-file uiina.pyz \
+         --console-script uiina \
+         .
+
+    runHook postBuild
+  '';
+
   installPhase = ''
     runHook preInstall
+
     mkdir -p $out/bin
-    cp uiina.py $out/bin/uiina
+    cp uiina.pyz $out/bin/uiina
     chmod +x $out/bin/uiina
+
     runHook postInstall
   '';
 
   # https://wiki.nixos.org/w/index.php?title=Nixpkgs/Update_Scripts
-  passthru.updateScript = gitUpdater {};
-  
+  passthru.updateScript = gitUpdater { };
+
   meta = {
     license = lib.licenses.gpl2;
     mainProgram = "uiina";

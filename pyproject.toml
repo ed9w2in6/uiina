@@ -38,6 +38,17 @@ requires = [
 ]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["flake.lock", "flake.nix", "package.nix", "*.bak"]
+
+[tool.hatch.build.targets.wheel]
+# packages = ["uiina"]
+
+[tool.hatch.build.targets.app]
+# scripts = [ "uiina" ]
+python-version = "3.13"
+pyapp-version = "0.27.0"
+
 [tool.uv.pip]
 generate-hashes = true
 
