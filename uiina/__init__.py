@@ -47,7 +47,10 @@ Edit (welkinSL):  I simply replaced all mentions of 'mpv' with 'IINA' in the ins
 
 from importlib.metadata import version
 
-from .uiina import *
+from .uiina import create_new_iina_with  # pyright: ignore[reportUsend_targets_to_iina_with
+from .uiina import get_socket_path  # pyright: ignore[reportUnusedImport]
+from .uiina import is_url  # pyright: ignore[reportUnusedImport]
+from .uiina import send_targets_to_iina_with  # pyright: ignore[reportUnusedImport]
 
 __version__ = version("uiina")
 

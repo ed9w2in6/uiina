@@ -11,16 +11,18 @@ import sys
 import textwrap
 from collections.abc import Iterable
 from functools import partial
+from importlib.metadata import version
 from pathlib import Path
+from platform import platform
 from types import FrameType
 from typing import BinaryIO
 
 
-def print_quick_help() -> None:
+def __print_quick_help() -> None:
     print("Usage: uiina [-vh] [target ...]")
 
 
-def print_help() -> None:
+def __print_help() -> None:
     print(
         textwrap.dedent(
             """\
@@ -29,6 +31,7 @@ def print_help() -> None:
             options:
                 -h | --help           Show this help.
                 -v | --verbose        Be verbose.
+                -V | --version        Print version info then exit.
 
             target ...:
                The target(s) to be opened by uiina.
@@ -91,7 +94,7 @@ def __print_signal_and_frame_then_exit_normally(
 ):
     "Handler for signal.signal, private API, do not use this externally."
     if not is_quiet:
-        print(f"\nReceived signal number { signo }, from frame { frame }.")
+        print(f"\nReceived signal number {signo}, from frame {frame}.")
         print("Exiting normally.")
     sys.exit(0)
 
@@ -128,8 +131,8 @@ def create_new_iina_with(targets: Iterable[Path | str], socket_path: Path) -> No
     )  # uuina: we DO want to wait for our clean up logic.
 
 
-def send_targets_to_iina(
-    conn: socket.socket | BinaryIO, targets: Iterable[Path | str]
+def send_targets_to_iina_with(
+    targets: Iterable[Path | str], conn: socket.socket | BinaryIO
 ) -> None:
     try:
         send = conn.send if isinstance(conn, socket.socket) else conn.write
@@ -151,23 +154,32 @@ def send_targets_to_iina(
 
 def main() -> None:
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "verbose"])
+        opts, args = getopt.getopt(sys.argv[1:], "hvV", ["help", "verbose", "version"])
     except getopt.GetoptError as err:
-        print_quick_help()
+        __print_quick_help()
         raise ValueError(f"Invalid options: {err}")
 
     is_quiet_option = True
+    is_print_version_and_quit = False
     for opt, _ in opts:
         match opt:
             case "-h" | "--help":
-                print_help()
+                __print_help()
                 return
             case "-v" | "--verbose":
                 is_quiet_option = False
+            case "-V" | "--version":
+                is_print_version_and_quit = True
             case _:
-                print_quick_help()
+                __print_quick_help()
                 raise ValueError(f"Invalid Options: {opt}, SHOULD NOT REACH HERE")
-
+    if is_print_version_and_quit:
+        package_version = version("uiina")
+        print(
+            f"uiina {package_version}"
+            + ("" if is_quiet_option else f"\nPython {sys.version}\n{platform()}")
+        )
+        return
     # make them absolute; also makes them safe against interpretation as options
     targets = (
         []
@@ -183,7 +195,7 @@ def main() -> None:
             ) as pipe:  # pyright: ignore[reportUnreachable] # unreachable on non-Windows only
                 if not is_quiet_option:
                     print(f"Using existing pipe: {pipe}")
-                send_targets_to_iina(pipe, targets)
+                send_targets_to_iina_with(targets, pipe)
         else:
             with socket.socket(
                 socket.AF_UNIX
@@ -193,7 +205,7 @@ def main() -> None:
                 )  # we rely on exception for new session creation.
                 if not is_quiet_option:
                     print(f"Using existing socket: {sock}")
-                send_targets_to_iina(sock, targets)
+                send_targets_to_iina_with(targets, sock)
     except (
         FileNotFoundError,  # uiina: old logic uses (socket.error.errno == errno.ENOENT)
         ConnectionRefusedError,  # abandoned socket
