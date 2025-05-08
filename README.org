@@ -1,13 +1,27 @@
- #+TITLE:uiina
+#+TITLE:uiina
 #+AUTHOR: welkinSL
 #+DATE: [2025-05-08 Thu]
 * About
+** Badges
+   [[https://img.shields.io/github/v/release/ed9w2in6/uiina.svg]]
+   [[https://github.com/ed9w2in6/uiina/actions/workflows/build.yml/badge.svg]]
+   [[https://img.shields.io/badge/Python-3776AB.svg?logo=python&logoColor=fff]]
+   [[https://img.shields.io/badge/macOS-000000.svg?logo=apple&logoColor=F0F0F0]]
+   [[https://img.shields.io/badge/Homebrew-FBB040.svg?logo=homebrew&logoColor=fff]]
+   [[https://img.shields.io/badge/Nix-5277C3.svg?logo=nixos&logoColor=fff]]
+   # In order:
+   # Shiels.io :: Repo Release Tag Badge
+   # Github :: build.yml Workflow Badge
+   # Python
+   # macOS
+   # Homebrew
+   # Nix
 ** Origins
   This repository contains the CLI tool =uiina=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
   Also a good oppourtunity for me to learn python project build based on =uv2nix= + =nix flakes=.
 
   Last modified: [2025-05-08 Thu]
-  #+begin_src sh :results output scalar :eval yes
+  #+begin_src sh :results output scalar :eval yes :exports both
 uiina --help
 #+end_src
 
