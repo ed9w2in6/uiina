@@ -3,16 +3,37 @@
 #+DATE: [2025-05-08 Thu]
 * About
 ** Origins
-  This repository contains the python script =uiina.py=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
+  This repository contains the CLI tool =uiina=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
+  Also a good oppourtunity for me to learn python project build based on =uv2nix= + =nix flakes=.
 
-  Last modified: [2025-05-04 Sun]
+  Last modified: [2025-05-08 Thu]
+  #+begin_src sh :results output scalar :eval yes
+uiina --help
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Usage: uiina [option] [target ...]
+
+    options:
+        -h | --help           Show this help.
+        -v | --verbose        Be verbose.
+        -V | --version        Print version info then exit.
+
+    target ...:
+       The target(s) to be opened by uiina.
+       They can be paths, or URLs.
+       To read from stdin, give a single parameter "-" and nothing else.
+
+    Inspect the python script for a more detailed explaination.
+#+end_example
 
   #+begin_export html
 <details>
 <summary>Detailed explaination of the script</summary>
   #+end_export
 ** Differences with =umpv=
-*** functions, variables, and CLI options renaming
+*** better functions signatures, variables names, and CLI options
     All mentions of =mpv= have been replaced with =iina= where applicable.
 
     It should be noted that IINA will NOT quite automatically after all files are played.
