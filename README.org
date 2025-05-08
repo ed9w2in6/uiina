@@ -1,6 +1,6 @@
  #+TITLE:uiina
 #+AUTHOR: welkinSL
-#+DATE: [2025-05-04 Sun]
+#+DATE: [2025-05-08 Thu]
 * About
 ** Origins
   This repository contains the python script =uiina.py=, modified from [[https://github.com/mpv-player/mpv/blob/master/TOOLS/umpv][this script]] from [[https://github.com/mpv-player/mpv][mpv's repository at Github]].
@@ -77,8 +77,89 @@ Arguments:
            #+begin_export html
  </details>
    #+end_export
-* How to install
+* How to use
 ** Using =nix=
+*** Try it out
+    #+begin_src sh :results output scalar :eval no
+nix run github:ed9w2in6/uiina#default
+    #+end_src
+*** imperative install :: Not recommended
+    Run any of these:
+    + =nix-env -iA github:ed9w2in6/uiina#default=
+    + =nix profile install github:ed9w2in6/uiina#default=
+*** using =nix flakes=
+    Something like this in your =nix-darwin= / =home-manager= flake.
+    #+begin_src nix :results output scalar :eval no
+{
+  description = "Example configuration with uiina installed";
+
+  inputs = {
+    # use your preferred nixpkgs channel here
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin.url = "github:nix-darwin/nix-darwin";
+    home-manager.url = "github:nix-community/home-manager";
+
+    # add the uiina flake as an input
+    uiina-flake.url = "github:ed9w2in6/uiina";
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nix-darwin,
+      home-manager,
+      uiina-flake,
+    }:
+    let
+      username = "my-name";
+      homeDirectory = "/Users/${username}";
+      system = "x86_64-darwin"; # [2025-05-08]: only "x86_64-darwin" for now, can easily add the "aarch64-darwin" later
+      pkgs = import nixpkgs { inherit system; };
+      uiina = uiina-flake.packages.x86_64-darwin.default;
+    in
+    {
+      darwinConfigurations."my-hostname" = nix-darwin.lib.darwinSystem {
+        inherit system;
+        modules = [
+          (
+            { config, pkgs, ... }:
+            {
+              environment.systemPackages = with pkgs; [
+                uiina
+              ];
+            }
+          )
+          home-manager.darwinModules.home-manager
+          {
+            home-manager = {
+              users."${username}" = {
+                home = (
+                  {
+                    pkgs,
+                    lib,
+                    # config,
+                    ...
+                  }:
+                  {
+                    # WARNING: you probably should NOT change yours
+                    stateVersion = "25.05"; # this is just an example
+                    # WARNING: you probably should NOT change yours
+
+                    inherit username homeDirectory;
+                    packages = with pkgs; [
+                      uiina
+                    ];
+                  }
+                );
+              };
+            };
+          }
+        ];
+      };
+    };
+}
+    #+end_src
 ** COMMENT Using =brew=
    Tap =ed9w2in6/wsl= and install it:
    #+BEGIN_src sh
@@ -86,13 +167,11 @@ brew tap ed9w2in6/wsl
 brew install uiina
    #+END_src
 ** From release
-   After downloading the =tgz= file,
+   After downloading the =uiina= binary
 
-   + Extract it.
-   + Verify its checksum
-   + Move the =uiina= folder to your desired location.
-   + make a symbolic link of =uiina.py= in one of the directories
-     under =$PATH=, it *must be named*: =uiina=
+   + Verify its checksum (e.g. =sha256sum --check sha256sum.txt=)
+   + Move the =uiina= binary to your desired location
+   + Make your desired location is under =$PATH=
 * Other notes
 ** COMMENT Problem with =brew=
    Questions with =brew= will not be answered here. Go see
