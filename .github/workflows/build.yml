@@ -1,0 +1,37 @@
+name: build and release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: macos-13 # this is x86_64-darwin, macos-latest is aarch64-darwin
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: install-nix
+        uses: DeterminateSystems/nix-installer-action@v17
+
+      - name: build-wheel
+        run: nix build .#wheel -o wheel
+
+      - name: build-shiv
+        run: nix build .#shiv -o shiv
+
+      - name: prepare-release # script is too long, split for linting!
+        run: |
+          chmod +x ci_scripts/prepare-release.sh
+          ci_scripts/prepare-release.sh
+
+      - name: release
+        uses: softprops/action-gh-release@v2.2.2
+        with:
+          files: out/*
+          tag_name: ${{ github.ref_name }}
+          name: uiina ${{ github.ref_name }}
+          body: |
+            Please also download the checksums: `sha256sum.txt`.
+            You can verify the checksums using a program, for example: `sha256sum --check sha256sum.txt`
