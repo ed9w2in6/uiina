@@ -96,11 +96,13 @@
       #
       # Are excluded but things like binaries, man pages, systemd units etc are included.
       packages.x86_64-darwin.default = mkApplication {
-        # Enable no optional dependencies for production build.
-        # alternative is set this venv as default directly
-        venv = pythonSet.mkVirtualEnv "uiina-app-env" workspace.deps.default;
+        venv = pythonSet.mkVirtualEnv "uiina-min" workspace.deps.default; # workspace.deps.default :: use no optional dependencies
         package = pythonSet.uiina;
       };
+      packages.x86_64-darwin.wheel = pythonSet.uiina.override {
+        pyprojectHook = pythonSet.pyprojectDistHook;
+      };
+      packages.x86_64-darwin.shiv = pkgs.callPackage ./package.nix { inherit python; }; # TODO: maybe use mkVirtualEnv's python? is it better?
 
       # Make uiina runnable with `nix run`
       apps.x86_64-darwin = {
@@ -168,12 +170,12 @@
             # Build virtual environment, with local packages being editable.
             #
             # Enable all optional dependencies for development.
-            virtualenv = editablePythonSet.mkVirtualEnv "uiina-dev-env" {
+            virtualenv = editablePythonSet.mkVirtualEnv "uiina-dev" {
               uiina = [ "dev" ];
             };
           in
           pkgs.mkShell {
-            name = "uiina-dev-env";
+            name = "uiina-dev"; # TODO: we abuse nix behaviour which append -env to name, may bad idea if its private
             packages = [
               virtualenv
               pkgs.uv
