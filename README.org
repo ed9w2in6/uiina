@@ -50,10 +50,10 @@ Usage: uiina [option] [target ...]
 *** better functions signatures, variables names, and CLI options
     All mentions of =mpv= have been replaced with =iina= where applicable.
 
-    It should be noted that IINA will NOT quite automatically after all files are played.
+    It should be noted that IINA will NOT quit automatically after all files are played.
     The way =mpv= options are via =iina= is also different:
 
-           #+begin_src sh :results output scalar :eval yes
+           #+begin_src sh :results output scalar :eval yes :exports both
 iina --help | head -n 10
     #+end_src
 
