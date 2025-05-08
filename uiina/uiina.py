@@ -18,15 +18,15 @@ from types import FrameType
 from typing import BinaryIO
 
 
-def __print_quick_help() -> None:
-    print("Usage: uiina [-vh] [target ...]")
+def __print_quick_help(name: str = "uiina") -> None:
+    print(f"Usage: {name} [-vh] [target ...]")
 
 
-def __print_help() -> None:
+def __print_help(name: str = "uiina") -> None:
     print(
         textwrap.dedent(
-            """\
-        Usage: uiina [option] [target ...]
+            f"""\
+        Usage: {name} [option] [target ...]
 
             options:
                 -h | --help           Show this help.
@@ -153,10 +153,11 @@ def send_targets_to_iina_with(
 
 
 def main() -> None:
+    NAME = sys.argv[0]
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hvV", ["help", "verbose", "version"])
     except getopt.GetoptError as err:
-        __print_quick_help()
+        __print_quick_help(NAME)
         raise ValueError(f"Invalid options: {err}")
 
     is_quiet_option = True
@@ -164,14 +165,14 @@ def main() -> None:
     for opt, _ in opts:
         match opt:
             case "-h" | "--help":
-                __print_help()
+                __print_help(NAME)
                 return
             case "-v" | "--verbose":
                 is_quiet_option = False
             case "-V" | "--version":
                 is_print_version_and_quit = True
             case _:
-                __print_quick_help()
+                __print_quick_help(NAME)
                 raise ValueError(f"Invalid Options: {opt}, SHOULD NOT REACH HERE")
     if is_print_version_and_quit:
         package_version = version("uiina")
